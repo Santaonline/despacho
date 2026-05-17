@@ -1,5 +1,6 @@
 const CACHE = 'despacho-v1';
-const ASSETS = ['/', '/index.html', '/manifest.json', '/icon.svg'];
+const BASE = self.registration.scope;
+const ASSETS = [BASE, BASE + 'manifest.json', BASE + 'icon.svg'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
