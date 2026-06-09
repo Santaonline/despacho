@@ -698,9 +698,9 @@ function renderPedidos() {
         <td>
           <div class="order-name">${p.nombre}</div>
           <div class="order-addr">${[p.direccion,p.localidad].filter(Boolean).join(' — ')}</div>
-          ${p.notas?`<span class="order-notes">${p.notas}</span>`:''}
         </td>
         <td style="font-size:13px;color:var(--ink2)">${p.telefono||'—'}</td>
+        <td style="font-size:13px;color:var(--warn)">${p.notas||'—'}</td>
         <td><span class="qty-badge">${p.bultos}</span></td>
         <td style="font-size:11px;color:var(--ink3);font-family:'DM Mono',monospace">${p.lat?distKm(DEPOT.lat,DEPOT.lng,p.lat,p.lng).toFixed(1)+' km':'—'}</td>
         <td><button class="del-btn" onclick="eliminarPedido(${p.id})">×</button></td>
@@ -713,7 +713,7 @@ function renderPedidos() {
         <div class="zone-name">${zone.name}</div>
         <div class="zone-count">${lista.length} pedido${lista.length!==1?'s':''}</div>
       </div>
-      ${lista.length?`<table class="order-table"><thead><tr><th>#</th><th>Pedido</th><th>Teléfono</th><th>Bultos</th><th>Dist.</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
+      ${lista.length?`<table class="order-table"><thead><tr><th>#</th><th>Pedido</th><th>Teléfono</th><th>Observaciones</th><th>Bultos</th><th>Dist.</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
       :'<div class="empty-zone">Sin pedidos para esta zona</div>'}`;
     container.appendChild(card);
   }
