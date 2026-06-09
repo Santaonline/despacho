@@ -344,6 +344,47 @@ body {
 .stop-dist { font-size: 11px; color: var(--ink3); font-family: 'DM Mono', monospace; }
 .stop-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 
+@media (max-width: 640px) {
+  /* Header */
+  .app-header { padding: 0 12px; }
+  .app-header h1 { font-size: 15px; }
+
+  /* Panel */
+  .panel { padding: 12px 10px 80px; }
+
+  /* Form */
+  .form-card { padding: 14px; }
+  .form-grid { grid-template-columns: 1fr; }
+  .span2 { grid-column: span 1; }
+  .form-actions { flex-direction: column; }
+  .form-actions .btn { width: 100%; text-align: center; }
+
+  /* Tabla pedidos → scroll horizontal */
+  .zone-card { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .order-table { min-width: 560px; }
+  .order-table th, .order-table td { padding: 8px 10px; }
+
+  /* Chips */
+  .chips { gap: 6px; }
+  .chip { font-size: 12px; padding: 4px 10px; }
+
+  /* Stop cards */
+  .stop-card { padding: 12px; }
+  .stop-name { font-size: 14px; }
+  .stop-actions { gap: 6px; }
+  .stop-actions .btn-wsp,
+  .stop-actions .btn-done,
+  .stop-actions .btn { font-size: 12px; padding: 8px 10px; }
+
+  /* Modal */
+  .modal-box { padding: 18px; }
+  .modal-actions { flex-direction: column-reverse; }
+  .modal-actions .btn { width: 100%; text-align: center; }
+
+  /* Tabs */
+  .tab-btn { font-size: 13px; padding: 0 8px; }
+}
+
 @media print {
   .app-header, .tabs, .form-card, .chips, .stop-actions, .del-btn { display: none !important; }
   .panel { display: block !important; padding: 0; }
