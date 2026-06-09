@@ -721,7 +721,12 @@ async function geocode(query) {
     if(!results.length){ preview.textContent='No se encontró la dirección'; preview.className='zone-preview warn'; return; }
     list.innerHTML='';
     const esCABA = d => { const la=parseFloat(d.lat),lo=parseFloat(d.lon); return la>-34.72&&la<-34.52&&lo>-58.54&&lo<-58.33; };
-    results.sort((a,b) => esCABA(b) - esCABA(a));
+    const tieneNum = d => !!((d.address||{}).house_number);
+    results.sort((a,b) => {
+      const c = esCABA(b) - esCABA(a);
+      if(c!==0) return c;
+      return tieneNum(b) - tieneNum(a);
+    });
     results.forEach(data=>{
       const addr=data.address||{};
       const loc=extractLocalidad(addr);
