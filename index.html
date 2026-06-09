@@ -918,7 +918,6 @@ function renderRuta() {
           </div>
         </div>
         <div class="stop-actions">
-          ${wsp?`<a class="btn-wsp" href="${wsp}" target="_blank" rel="noopener">${WSP_ICON} Avisar llegada</a>`:''}
           ${p.telefono?`<button class="btn-wsp" style="background:#128C7E" onclick="wspUbicacion('${p.telefono}','${p.nombre.replace(/'/g,"\\'")}')">📍 Enviar ubicación</button>`:''}
           <button class="btn-done ${done?'done':''}" onclick="toggleEntregado(${p.id})">${done?'✓ Entregado':'Marcar entregado'}</button>
           <button class="btn btn-ghost btn-sm" onclick="abrirEditarPedido(${p.id})">✏ Editar</button>
