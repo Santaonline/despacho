@@ -381,8 +381,8 @@ body {
     <div class="modal-field"><label>Nombre</label><input id="editNombre" type="text"></div>
     <div class="modal-field"><label>Teléfono</label><input id="editTelefono" type="tel"></div>
     <div class="modal-field"><label>Dirección</label><input id="editDireccion" type="text"></div>
-    <div class="modal-field"><label>Horario desde</label><input id="editHoraDesde" type="time" step="3600"></div>
-    <div class="modal-field"><label>Horario hasta</label><input id="editHoraHasta" type="time" step="3600"></div>
+    <div class="modal-field"><label>Horario desde</label><input id="editHoraDesde" type="number" min="0" max="23" placeholder="ej: 9"></div>
+    <div class="modal-field"><label>Horario hasta</label><input id="editHoraHasta" type="number" min="0" max="23" placeholder="ej: 14"></div>
     <div class="modal-field"><label>Observaciones</label><input id="editNotas" type="text"></div>
     <div class="modal-field"><label>Bultos</label><input id="editBultos" type="number" min="1" max="99"></div>
     <div class="modal-actions">
@@ -445,11 +445,11 @@ body {
         </div>
         <div class="field">
           <label>Horario desde</label>
-          <input type="time" id="fHoraDesde" step="3600">
+          <input type="number" id="fHoraDesde" min="0" max="23" placeholder="ej: 9">
         </div>
         <div class="field">
           <label>Horario hasta</label>
-          <input type="time" id="fHoraHasta" step="3600">
+          <input type="number" id="fHoraHasta" min="0" max="23" placeholder="ej: 14">
         </div>
         <div class="field">
           <label>Observaciones</label>
@@ -525,7 +525,7 @@ function extractLocalidad(addr={}) {
   return addr.suburb||addr.neighbourhood||addr.district||addr.city_district||addr.town||addr.city||addr.county||'';
 }
 
-function fmtHora(h) { return h ? String(parseInt(h.split(':')[0])) : ''; }
+function fmtHora(h) { return (h!==''&&h!=null) ? String(parseInt(String(h).split(':')[0])) : ''; }
 function fmtRango(desde, hasta) {
   const d=fmtHora(desde), h=fmtHora(hasta);
   if(d&&h) return `${d}–${h}hs`;
