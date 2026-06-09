@@ -272,6 +272,7 @@ body {
 .order-num-cell { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--ink3); }
 .order-name { font-weight: 500; }
 .order-addr { color: var(--ink2); font-size: 12px; margin-top: 2px; }
+.td-orden { font-size:11px; font-family:'DM Mono',monospace; color:var(--info); margin-bottom:2px; }
 .order-notes {
   display: inline-block; margin-top: 4px; font-size: 11px;
   color: var(--warn); background: var(--warn-light);
@@ -359,14 +360,37 @@ body {
   .form-actions { flex-direction: column; }
   .form-actions .btn { width: 100%; text-align: center; }
 
-  /* Tabla pedidos → scroll horizontal */
-  .zone-card { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .order-table { min-width: 560px; }
-  .order-table th, .order-table td { padding: 8px 10px; }
-
   /* Chips */
   .chips { gap: 6px; }
   .chip { font-size: 12px; padding: 4px 10px; }
+
+  /* Tabla → cards por fila */
+  .zone-card { overflow: visible; }
+  .order-table { min-width: unset !important; width: 100%; }
+  .order-table thead { display: none; }
+  .order-table tbody tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto auto;
+    column-gap: 8px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .order-table tbody tr:last-child { border-bottom: none; }
+  .order-table tbody tr:hover td { background: none; }
+  .order-table td { padding: 0; border: none; font-size: 13px; }
+
+  /* Col izquierda: pedido ocupa filas 1-2, tel fila 3 */
+  .td-num    { display: none; }
+  .td-dist   { display: none; }
+  .td-pedido { grid-column: 1; grid-row: 1; }
+  .td-tel    { grid-column: 1; grid-row: 2; padding-top: 3px; font-size: 12px !important; }
+  .td-horario{ grid-column: 1; grid-row: 3; padding-top: 2px; }
+  .td-notas  { grid-column: 1; grid-row: 4; padding-top: 2px; font-size: 12px !important; }
+
+  /* Col derecha: bultos arriba, delete abajo */
+  .td-bultos { grid-column: 2; grid-row: 1; text-align: right; }
+  .td-del    { grid-column: 2; grid-row: 2; text-align: right; align-self: end; }
 
   /* Stop cards */
   .stop-card { padding: 12px; }
@@ -377,7 +401,8 @@ body {
   .stop-actions .btn { font-size: 12px; padding: 8px 10px; }
 
   /* Modal */
-  .modal-box { padding: 18px; }
+  .modal-overlay { align-items: flex-end; padding: 0; }
+  .modal-box { border-radius: 16px 16px 0 0; padding: 20px 16px; max-width: 100%; max-height: 90vh; overflow-y: auto; }
   .modal-actions { flex-direction: column-reverse; }
   .modal-actions .btn { width: 100%; text-align: center; }
 
@@ -830,18 +855,18 @@ function renderPedidos() {
     const lista=grouped[zone.name]||[];
     const rows=lista.map((p,i)=>`
       <tr>
-        <td class="order-num-cell">${i+1}</td>
-        <td>
-          ${p.nroOrden?`<div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--info);margin-bottom:2px">${p.nroOrden}</div>`:''}
+        <td class="td-num order-num-cell">${i+1}</td>
+        <td class="td-pedido">
+          ${p.nroOrden?`<div class="td-orden">${p.nroOrden}</div>`:''}
           <div class="order-name">${p.nombre}</div>
           <div class="order-addr">${[p.direccion,p.localidad].filter(Boolean).join(' — ')}</div>
         </td>
-        <td style="font-size:13px;color:var(--ink2)">${p.telefono||'—'}</td>
-        <td style="font-size:12px;font-family:'DM Mono',monospace;color:var(--accent)">${fmtRango(p.horaDesde,p.horaHasta)}</td>
-        <td style="font-size:13px;color:var(--warn)">${p.notas||'—'}</td>
-        <td><span class="qty-badge">${p.bultos}</span></td>
-        <td style="font-size:11px;color:var(--ink3);font-family:'DM Mono',monospace">${p.lat?distKm(DEPOT.lat,DEPOT.lng,p.lat,p.lng).toFixed(1)+' km':'—'}</td>
-        <td><button class="del-btn" onclick="eliminarPedido(${p.id})">×</button></td>
+        <td class="td-tel" style="font-size:13px;color:var(--ink2)">${p.telefono||'—'}</td>
+        <td class="td-horario" style="font-size:12px;font-family:'DM Mono',monospace;color:var(--accent)">${fmtRango(p.horaDesde,p.horaHasta)||'—'}</td>
+        <td class="td-notas" style="font-size:13px;color:var(--warn)">${p.notas||'—'}</td>
+        <td class="td-bultos"><span class="qty-badge">${p.bultos}</span></td>
+        <td class="td-dist" style="font-size:11px;color:var(--ink3);font-family:'DM Mono',monospace">${p.lat?distKm(DEPOT.lat,DEPOT.lng,p.lat,p.lng).toFixed(1)+' km':'—'}</td>
+        <td class="td-del"><button class="del-btn" onclick="eliminarPedido(${p.id})">×</button></td>
       </tr>`).join('');
     const card=document.createElement('div');
     card.className='zone-card';
