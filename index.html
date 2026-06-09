@@ -714,7 +714,7 @@ async function geocode(query) {
   const list=document.getElementById('autocompleteList');
   spinner.style.display='block';
   try {
-    const url=`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query+', Argentina')}&format=json&addressdetails=1&limit=6&countrycodes=ar`;
+    const url=`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query+', Buenos Aires, Argentina')}&format=json&addressdetails=1&limit=6&countrycodes=ar&viewbox=-59.2,-34.2,-58.0,-35.0&bounded=1`;
     const res=await fetch(url,{headers:{'Accept-Language':'es'}});
     const results=await res.json();
     spinner.style.display='none';
