@@ -720,7 +720,7 @@ async function geocode(query) {
     spinner.style.display='none';
     if(!results.length){ preview.textContent='No se encontró la dirección'; preview.className='zone-preview warn'; return; }
     list.innerHTML='';
-    const esCABA = d => (d.address||{}).state === 'Ciudad Autónoma de Buenos Aires';
+    const esCABA = d => { const la=parseFloat(d.lat),lo=parseFloat(d.lon); return la>-34.72&&la<-34.52&&lo>-58.54&&lo<-58.33; };
     results.sort((a,b) => esCABA(b) - esCABA(a));
     results.forEach(data=>{
       const addr=data.address||{};
