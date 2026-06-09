@@ -720,11 +720,14 @@ async function geocode(query) {
     spinner.style.display='none';
     if(!results.length){ preview.textContent='No se encontró la dirección'; preview.className='zone-preview warn'; return; }
     list.innerHTML='';
+    const esCABA = d => (d.address||{}).state === 'Ciudad Autónoma de Buenos Aires';
+    results.sort((a,b) => esCABA(b) - esCABA(a));
     results.forEach(data=>{
       const addr=data.address||{};
       const loc=extractLocalidad(addr);
       const zone=assignZone(loc)||assignZone(data.display_name);
-      const street=[addr.road,addr.house_number].filter(Boolean).join(' ')||data.display_name.split(',')[0];
+      const houseNum=addr.house_number||(addr.name&&/\d/.test(addr.name)?addr.name.match(/\d+/)?.[0]:'');
+      const street=[addr.road,houseNum].filter(Boolean).join(' ')||data.display_name.split(',')[0];
       const sub=[...new Set([loc,addr.city||addr.town,addr.state].filter(Boolean))].join(', ');
       const item=document.createElement('div');
       item.className='autocomplete-item';
@@ -738,7 +741,8 @@ async function geocode(query) {
 
 function selectGeo(data,loc,zone) {
   const addr=data.address||{};
-  const street=[addr.road,addr.house_number].filter(Boolean).join(' ')||data.display_name.split(',')[0];
+  const houseNum=addr.house_number||(addr.name&&/\d/.test(addr.name)?addr.name.match(/\d+/)?.[0]:'');
+  const street=[addr.road,houseNum].filter(Boolean).join(' ')||data.display_name.split(',')[0];
   const city=addr.city||addr.town||loc;
   const display=[...new Set([street,loc,city].filter(Boolean))].join(', ');
   document.getElementById('fDireccion').value=display;
