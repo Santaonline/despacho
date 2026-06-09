@@ -350,11 +350,47 @@ body {
   .stop-card { border: 1px solid #ccc; margin-bottom: 6px; }
 }
 
+/* EDIT MODAL */
+.modal-overlay {
+  display:none; position:fixed; inset:0; z-index:9999;
+  background:rgba(0,0,0,.45); align-items:center; justify-content:center; padding:20px;
+}
+.modal-overlay.open { display:flex; }
+.modal-box {
+  background:#fff; border-radius:var(--radius); padding:24px;
+  width:100%; max-width:400px; box-shadow:0 8px 32px rgba(0,0,0,.15);
+}
+.modal-box h3 { font-size:15px; font-weight:600; margin-bottom:16px; }
+.modal-field { margin-bottom:12px; }
+.modal-field label { display:block; font-size:12px; font-weight:500; color:var(--ink2); margin-bottom:4px; }
+.modal-field input { width:100%; padding:9px 12px; border:1px solid var(--border); border-radius:8px; font:14px 'DM Sans',sans-serif; background:var(--bg); box-sizing:border-box; }
+.modal-field input:focus { outline:none; border-color:var(--accent); }
+.modal-actions { display:flex; gap:8px; margin-top:16px; justify-content:flex-end; }
+
 /* LOGIN */
 #loginGate form { padding: 24px; }
 </style>
 </head>
 <body>
+
+<!-- MODAL EDITAR PEDIDO -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal-box">
+    <h3>Editar pedido</h3>
+    <div class="modal-field"><label>Nº de orden</label><input id="editOrden" type="text"></div>
+    <div class="modal-field"><label>Nombre</label><input id="editNombre" type="text"></div>
+    <div class="modal-field"><label>Teléfono</label><input id="editTelefono" type="tel"></div>
+    <div class="modal-field"><label>Dirección</label><input id="editDireccion" type="text"></div>
+    <div class="modal-field"><label>Horario desde</label><input id="editHoraDesde" type="time" step="3600"></div>
+    <div class="modal-field"><label>Horario hasta</label><input id="editHoraHasta" type="time" step="3600"></div>
+    <div class="modal-field"><label>Observaciones</label><input id="editNotas" type="text"></div>
+    <div class="modal-field"><label>Bultos</label><input id="editBultos" type="number" min="1" max="99"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" onclick="cerrarEditModal()">Cancelar</button>
+      <button class="btn btn-primary btn-sm" onclick="guardarEdicion()">Guardar</button>
+    </div>
+  </div>
+</div>
 
 <!-- HEADER -->
 <div class="app-header">
@@ -384,7 +420,11 @@ body {
     <div class="form-card">
       <h2>Agregar pedido</h2>
       <div class="form-grid">
-        <div class="field span2">
+        <div class="field">
+          <label>Nº de orden (TiendaNube)</label>
+          <input type="text" id="fOrden" placeholder="#12345" autocomplete="off">
+        </div>
+        <div class="field">
           <label>Nombre del cliente</label>
           <input type="text" id="fNombre" placeholder="Juan García" autocomplete="off">
         </div>
@@ -402,6 +442,14 @@ body {
             <div class="autocomplete-list" id="autocompleteList"></div>
           </div>
           <div class="zone-preview" id="zonePreview"></div>
+        </div>
+        <div class="field">
+          <label>Horario desde</label>
+          <input type="time" id="fHoraDesde" step="3600">
+        </div>
+        <div class="field">
+          <label>Horario hasta</label>
+          <input type="time" id="fHoraHasta" step="3600">
         </div>
         <div class="field">
           <label>Observaciones</label>
@@ -477,21 +525,46 @@ function extractLocalidad(addr={}) {
   return addr.suburb||addr.neighbourhood||addr.district||addr.city_district||addr.town||addr.city||addr.county||'';
 }
 
-function wspUrl(tel,nombre) {
+function fmtHora(h) { return h ? String(parseInt(h.split(':')[0])) : ''; }
+function fmtRango(desde, hasta) {
+  const d=fmtHora(desde), h=fmtHora(hasta);
+  if(d&&h) return `${d}–${h}hs`;
+  if(d) return `desde ${d}hs`;
+  if(h) return `hasta ${h}hs`;
+  return '';
+}
+
+function _fmtTel(tel) {
   let n=(tel||'').replace(/\D/g,'');
   if(!n) return null;
   if(n.startsWith('0')) n=n.slice(1);
   if(!n.startsWith('54')) n='54'+n;
   if(n.startsWith('54')&&!n.startsWith('549')) n='549'+n.slice(2);
+  return n;
+}
+function wspUrl(tel,nombre) {
+  const n=_fmtTel(tel);
+  if(!n) return null;
   const msg=encodeURIComponent(`Hola ${nombre}, te avisamos que estamos por llegar con tu pedido. ¡Nos vemos en unos minutos! 🚚`);
   return `https://wa.me/${n}?text=${msg}`;
 }
+function wspUbicacion(tel, nombre) {
+  if(!navigator.geolocation){ alert('Tu dispositivo no soporta GPS.'); return; }
+  navigator.geolocation.getCurrentPosition(pos => {
+    const n=_fmtTel(tel);
+    if(!n){ alert('El pedido no tiene teléfono.'); return; }
+    const {latitude:lat, longitude:lng} = pos.coords;
+    const maps=`https://maps.google.com/?q=${lat},${lng}`;
+    const msg=encodeURIComponent(`Hola ${nombre}, estamos en camino hacia vos. Acá podés ver dónde estamos ahora: ${maps} 🚚`);
+    window.open(`https://wa.me/${n}?text=${msg}`, '_blank');
+  }, () => alert('No se pudo obtener la ubicación. Verificá que el GPS esté activo.'));
+}
 
-function optimizarRuta(lista) {
+function _nnRuta(lista, startLat, startLng) {
   const con=lista.filter(p=>p.lat&&p.lng), sin=lista.filter(p=>!p.lat||!p.lng);
   const vis=new Array(con.length).fill(false);
   const ruta=[];
-  let cLat=DEPOT.lat, cLng=DEPOT.lng;
+  let cLat=startLat, cLng=startLng;
   for(let i=0;i<con.length;i++){
     let mn=Infinity,mi=-1;
     for(let j=0;j<con.length;j++){
@@ -503,8 +576,27 @@ function optimizarRuta(lista) {
     ruta.push({pedido:con[mi],dist:mn});
     cLat=con[mi].lat; cLng=con[mi].lng;
   }
-  const dv=ruta.length?distKm(cLat,cLng,DEPOT.lat,DEPOT.lng):0;
   sin.forEach(p=>ruta.push({pedido:p,dist:null}));
+  return {ruta, lastLat:cLat, lastLng:cLng};
+}
+
+function optimizarRuta(lista) {
+  // Agrupar por franja horaria (horaDesde), sin franja va al final
+  const grupos={};
+  for(const p of lista){
+    const key=p.horaDesde||'zzz';
+    if(!grupos[key]) grupos[key]=[];
+    grupos[key].push(p);
+  }
+  const keys=Object.keys(grupos).sort();
+  const ruta=[];
+  let cLat=DEPOT.lat, cLng=DEPOT.lng;
+  for(const key of keys){
+    const {ruta:tramo, lastLat, lastLng}=_nnRuta(grupos[key], cLat, cLng);
+    ruta.push(...tramo);
+    cLat=lastLat; cLng=lastLng;
+  }
+  const dv=ruta.length?distKm(cLat,cLng,DEPOT.lat,DEPOT.lng):0;
   const total=ruta.reduce((s,r)=>s+(r.dist||0),0)+dv;
   return {ruta,total,dv};
 }
@@ -602,20 +694,23 @@ function selectGeo(data,loc,zone) {
 
 /* ── AGREGAR PEDIDO ── */
 function agregarPedido() {
+  const nroOrden=document.getElementById('fOrden').value.trim();
   const nombre=document.getElementById('fNombre').value.trim();
   const telefono=document.getElementById('fTelefono').value.trim();
   const direccion=document.getElementById('fDireccion').value.trim();
   const bultos=parseInt(document.getElementById('fBultos').value)||1;
   const notas=document.getElementById('fNotas').value.trim();
+  const horaDesde=document.getElementById('fHoraDesde').value;
+  const horaHasta=document.getElementById('fHoraHasta').value;
   if(!nombre){ document.getElementById('fNombre').focus(); return; }
   if(!direccion){ document.getElementById('fDireccion').focus(); return; }
   if(!currentGeo){
     const p=document.getElementById('zonePreview');
     p.textContent='Esperá que se detecte la zona'; p.className='zone-preview warn'; return;
   }
-  pedidos.push({id:nextId++,nombre,telefono,direccion,localidad:currentGeo.localidad,bultos,notas,zona:currentGeo.zona,lat:currentGeo.lat,lng:currentGeo.lng});
+  pedidos.push({id:nextId++,nroOrden,nombre,telefono,direccion,localidad:currentGeo.localidad,bultos,notas,horaDesde,horaHasta,zona:currentGeo.zona,lat:currentGeo.lat,lng:currentGeo.lng});
   save();
-  ['fNombre','fTelefono','fDireccion','fNotas'].forEach(id=>document.getElementById(id).value='');
+  ['fOrden','fNombre','fTelefono','fDireccion','fNotas','fHoraDesde','fHoraHasta'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('fBultos').value='1';
   document.getElementById('zonePreview').textContent='';
   document.getElementById('geoOk').style.display='none';
@@ -696,10 +791,12 @@ function renderPedidos() {
       <tr>
         <td class="order-num-cell">${i+1}</td>
         <td>
+          ${p.nroOrden?`<div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--info);margin-bottom:2px">${p.nroOrden}</div>`:''}
           <div class="order-name">${p.nombre}</div>
           <div class="order-addr">${[p.direccion,p.localidad].filter(Boolean).join(' — ')}</div>
         </td>
         <td style="font-size:13px;color:var(--ink2)">${p.telefono||'—'}</td>
+        <td style="font-size:12px;font-family:'DM Mono',monospace;color:var(--accent)">${fmtRango(p.horaDesde,p.horaHasta)}</td>
         <td style="font-size:13px;color:var(--warn)">${p.notas||'—'}</td>
         <td><span class="qty-badge">${p.bultos}</span></td>
         <td style="font-size:11px;color:var(--ink3);font-family:'DM Mono',monospace">${p.lat?distKm(DEPOT.lat,DEPOT.lng,p.lat,p.lng).toFixed(1)+' km':'—'}</td>
@@ -713,7 +810,7 @@ function renderPedidos() {
         <div class="zone-name">${zone.name}</div>
         <div class="zone-count">${lista.length} pedido${lista.length!==1?'s':''}</div>
       </div>
-      ${lista.length?`<table class="order-table"><thead><tr><th>#</th><th>Pedido</th><th>Teléfono</th><th>Observaciones</th><th>Bultos</th><th>Dist.</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
+      ${lista.length?`<table class="order-table"><thead><tr><th>#</th><th>Pedido</th><th>Teléfono</th><th>Horario</th><th>Observaciones</th><th>Bultos</th><th>Dist.</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
       :'<div class="empty-zone">Sin pedidos para esta zona</div>'}`;
     container.appendChild(card);
   }
@@ -743,8 +840,10 @@ function renderRuta() {
         <div class="stop-top">
           <div class="stop-num ${done?'done-num':''}">${done?'✓':idx+1}</div>
           <div class="stop-info">
+            ${p.nroOrden?`<div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--info);margin-bottom:2px">${p.nroOrden}</div>`:''}
             <div class="stop-name">${p.nombre}</div>
             <div class="stop-addr">${[p.direccion,p.localidad].filter(Boolean).join(' — ')}</div>
+            ${fmtRango(p.horaDesde,p.horaHasta)?`<div style="margin-top:3px;font-size:12px;font-family:'DM Mono',monospace;color:var(--accent)">⏱ ${fmtRango(p.horaDesde,p.horaHasta)}</div>`:''}
             ${p.notas?`<div class="stop-notes">${p.notas}</div>`:''}
           </div>
           <div class="stop-right">
@@ -754,7 +853,10 @@ function renderRuta() {
         </div>
         <div class="stop-actions">
           ${wsp?`<a class="btn-wsp" href="${wsp}" target="_blank" rel="noopener">${WSP_ICON} Avisar llegada</a>`:''}
+          ${p.telefono?`<button class="btn-wsp" style="background:#128C7E" onclick="wspUbicacion('${p.telefono}','${p.nombre.replace(/'/g,"\\'")}')">📍 Enviar ubicación</button>`:''}
           <button class="btn-done ${done?'done':''}" onclick="toggleEntregado(${p.id})">${done?'✓ Entregado':'Marcar entregado'}</button>
+          <button class="btn btn-ghost btn-sm" onclick="abrirEditarPedido(${p.id})">✏ Editar</button>
+          <button class="btn btn-sm" style="background:var(--danger-light);color:var(--danger)" onclick="eliminarPedido(${p.id})">× Eliminar</button>
         </div>
       </div>`;
   }).join('');
@@ -788,6 +890,44 @@ function updateBadges() {
   document.getElementById('badgeRuta').textContent=nd?`${nd}/${n}`:n;
   document.getElementById('badgeRuta').className='tab-badge'+(n?'':' empty');
 }
+
+/* ── EDITAR PEDIDO ── */
+let _editId = null;
+function abrirEditarPedido(id) {
+  const p = pedidos.find(x => x.id === id);
+  if (!p) return;
+  _editId = id;
+  document.getElementById('editOrden').value     = p.nroOrden  || '';
+  document.getElementById('editNombre').value    = p.nombre    || '';
+  document.getElementById('editTelefono').value  = p.telefono  || '';
+  document.getElementById('editDireccion').value = p.direccion || '';
+  document.getElementById('editHoraDesde').value = p.horaDesde || '';
+  document.getElementById('editHoraHasta').value = p.horaHasta || '';
+  document.getElementById('editNotas').value     = p.notas     || '';
+  document.getElementById('editBultos').value    = p.bultos    || 1;
+  document.getElementById('editModal').classList.add('open');
+}
+function cerrarEditModal() {
+  document.getElementById('editModal').classList.remove('open');
+  _editId = null;
+}
+function guardarEdicion() {
+  const p = pedidos.find(x => x.id === _editId);
+  if (!p) return;
+  p.nroOrden  = document.getElementById('editOrden').value.trim();
+  p.nombre    = document.getElementById('editNombre').value.trim()    || p.nombre;
+  p.telefono  = document.getElementById('editTelefono').value.trim();
+  p.direccion = document.getElementById('editDireccion').value.trim() || p.direccion;
+  p.horaDesde = document.getElementById('editHoraDesde').value;
+  p.horaHasta = document.getElementById('editHoraHasta').value;
+  p.notas     = document.getElementById('editNotas').value.trim();
+  p.bultos    = parseInt(document.getElementById('editBultos').value) || 1;
+  save();
+  cerrarEditModal();
+  renderRuta();
+  updateBadges();
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarEditModal(); });
 
 /* ── FIREBASE ── */
 const _fbApp = firebase.initializeApp({
