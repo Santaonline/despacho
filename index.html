@@ -12,6 +12,8 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon.svg">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -347,6 +349,9 @@ body {
   .panel { display: block !important; padding: 0; }
   .stop-card { border: 1px solid #ccc; margin-bottom: 6px; }
 }
+
+/* LOGIN */
+#loginGate form { padding: 24px; }
 </style>
 </head>
 <body>
@@ -357,7 +362,10 @@ body {
     <h1>Despacho Diario</h1>
     <div class="app-header-date" id="headerDate"></div>
   </div>
-  <div style="font-size:12px;opacity:.7;text-align:right">Caseros 2431<br>Parque Patricios</div>
+  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+    <div style="font-size:12px;opacity:.7;text-align:right">Caseros 2431 · Parque Patricios</div>
+    <span id="syncChip" style="display:none;font-size:11px;padding:1px 8px;border-radius:999px;background:rgba(255,255,255,.2);color:#fff"></span>
+  </div>
 </div>
 
 <!-- TABS -->
@@ -434,8 +442,8 @@ const ZONES = [
 ];
 
 /* ── ESTADO ── */
-let pedidos = JSON.parse(localStorage.getItem('despacho_pedidos') || '[]');
-let nextId  = parseInt(localStorage.getItem('despacho_nextId')  || '1');
+let pedidos    = [];
+let nextId     = 1;
 let entregados = JSON.parse(sessionStorage.getItem('despacho_entregados') || '[]');
 let tabActual = 'pedidos';
 let geoTimer = null;
@@ -444,8 +452,9 @@ let acIdx = -1;
 
 /* ── PERSIST ── */
 function save() {
-  localStorage.setItem('despacho_pedidos', JSON.stringify(pedidos));
-  localStorage.setItem('despacho_nextId', String(nextId));
+  _syncChip('syncing');
+  _db.collection('despacho').doc('estado').set({ pedidos, nextId })
+    .then(() => _syncChip('ok')).catch(() => _syncChip('error'));
 }
 function saveEntregados() {
   sessionStorage.setItem('despacho_entregados', JSON.stringify(entregados));
@@ -780,6 +789,42 @@ function updateBadges() {
   document.getElementById('badgeRuta').className='tab-badge'+(n?'':' empty');
 }
 
+/* ── FIREBASE ── */
+const _fbApp = firebase.initializeApp({
+  apiKey: "AIzaSyDTmhK8l0--RhzlrvS0kOzaoD4CGlFVMj4",
+  authDomain: "santaonline-3aa97.firebaseapp.com",
+  projectId: "santaonline-3aa97",
+  storageBucket: "santaonline-3aa97.firebasestorage.app",
+  messagingSenderId: "765297512781",
+  appId: "1:765297512781:web:6c74d1ced2d77a4d142704"
+});
+const _db = firebase.firestore(_fbApp);
+
+function _syncChip(state) {
+  const el = document.getElementById('syncChip');
+  if (!el) return;
+  const map = { syncing: ['⟳ Guardando…', .3], ok: ['✓ Guardado', .7], error: ['⚠ Error', .7] };
+  const [text, opacity] = map[state] || map.ok;
+  el.textContent = text; el.style.opacity = opacity; el.style.display = '';
+  if (state === 'ok') setTimeout(() => { el.style.display = 'none'; }, 2000);
+}
+
+async function _fbLoad() {
+  _syncChip('syncing');
+  try {
+    const doc = await _db.collection('despacho').doc('estado').get();
+    if (doc.exists) {
+      const data = doc.data();
+      pedidos = data.pedidos || [];
+      nextId  = data.nextId  || 1;
+    }
+    _syncChip('ok');
+  } catch(e) {
+    _syncChip('error');
+    console.warn('Firebase load error:', e);
+  }
+}
+
 /* ── INIT ── */
 document.addEventListener('click',e=>{ if(!e.target.closest('.autocomplete-wrapper')) closeAC(); });
 document.addEventListener('keydown',e=>{
@@ -789,7 +834,7 @@ document.getElementById('headerDate').textContent=new Date().toLocaleDateString(
 
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
 
-updateBadges();
+_fbLoad().then(() => { updateBadges(); renderPedidos(); });
 </script>
 </body>
 </html>
