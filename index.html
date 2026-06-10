@@ -731,22 +731,24 @@ async function geocode(query) {
       const addr=data.address||{};
       const loc=extractLocalidad(addr);
       const zone=assignZone(loc)||assignZone(data.display_name);
-      const houseNum=addr.house_number||(addr.name&&/\d/.test(addr.name)?addr.name.match(/\d+/)?.[0]:'');
+      const numFromQ=(query.match(/\b(\d{3,5})\b/)||[])[1]||'';
+      const houseNum=addr.house_number||numFromQ||(addr.name&&/\d/.test(addr.name)?addr.name.match(/\d+/)?.[0]:'');
       const street=[addr.road,houseNum].filter(Boolean).join(' ')||data.display_name.split(',')[0];
       const sub=[...new Set([loc,addr.city||addr.town,addr.state].filter(Boolean))].join(', ');
       const item=document.createElement('div');
       item.className='autocomplete-item';
       item.innerHTML=`<div>📍</div><div style="flex:1;min-width:0"><div class="ac-main">${street}</div><div class="ac-sub">${sub}</div></div>${zone?`<div class="ac-zone">${zone.name}</div>`:`<div class="ac-zone unknown">Sin zona</div>`}`;
-      item.addEventListener('click',()=>selectGeo(data,loc,zone));
+      item.addEventListener('click',()=>selectGeo(data,loc,zone,query));
       list.appendChild(item);
     });
     list.classList.add('open');
   } catch { spinner.style.display='none'; preview.textContent='Error de conexión'; preview.className='zone-preview error'; }
 }
 
-function selectGeo(data,loc,zone) {
+function selectGeo(data,loc,zone,userQuery='') {
   const addr=data.address||{};
-  const houseNum=addr.house_number||(addr.name&&/\d/.test(addr.name)?addr.name.match(/\d+/)?.[0]:'');
+  const numFromQuery=(userQuery.match(/\b(\d{3,5})\b/)||[])[1]||'';
+  const houseNum=addr.house_number||numFromQuery||(addr.name&&/\d/.test(addr.name)?addr.name.match(/\d+/)?.[0]:'');
   const street=[addr.road,houseNum].filter(Boolean).join(' ')||data.display_name.split(',')[0];
   const city=addr.city||addr.town||loc;
   const display=[...new Set([street,loc,city].filter(Boolean))].join(', ');
