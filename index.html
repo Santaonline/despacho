@@ -411,9 +411,60 @@ body {
 }
 
 @media print {
-  .app-header, .tabs, .form-card, .chips, .stop-actions, .del-btn { display: none !important; }
-  .panel { display: block !important; padding: 0; }
-  .stop-card { border: 1px solid #ccc; margin-bottom: 6px; }
+  @page { size: A4; margin: 2cm; }
+
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  /* Ocultar todo lo que no es hoja de ruta */
+  .app-header, .tabs, .form-card, .chips,
+  .stop-actions, .del-btn,
+  #panelPedidos, #zonasPedidos, #chipsPedidos,
+  .ruta-progress, .depot-row, .connector,
+  a[href*="google.com"], button { display: none !important; }
+
+  /* Mostrar solo el panel de ruta */
+  body { background: #fff; font-family: 'DM Sans', sans-serif; }
+  .panel { display: block !important; padding: 0 !important; overflow: visible !important; }
+  .inner { max-width: 100% !important; }
+
+  /* Título de impresión */
+  #rutaInner::before {
+    content: "Hoja de Ruta — " attr(data-fecha);
+    display: block;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #000;
+  }
+
+  /* Cards de paradas */
+  .stop-card {
+    display: block !important;
+    border: 1px solid #ccc !important;
+    border-radius: 6px !important;
+    padding: 10px 14px !important;
+    margin-bottom: 8px !important;
+    page-break-inside: avoid;
+    opacity: 1 !important;
+  }
+  .stop-top { display: flex !important; gap: 10px !important; align-items: flex-start !important; }
+  .stop-num {
+    width: 28px !important; height: 28px !important;
+    font-size: 13px !important;
+    background: #2D6A4F !important;
+    flex-shrink: 0 !important;
+  }
+  .stop-num.done-num { background: #999 !important; }
+  .stop-name { font-size: 14px !important; font-weight: 700 !important; }
+  .stop-addr { font-size: 12px !important; color: #444 !important; }
+  .stop-notes { font-size: 11px !important; }
+  .stop-right { display: flex !important; flex-direction: column !important; align-items: flex-end !important; }
+  .qty-badge { background: #eee !important; font-size: 12px !important; }
+  .stop-dist { font-size: 11px !important; color: #666 !important; }
+
+  /* Datos extra visibles en impresión */
+  .print-tel, .print-horario, .print-orden { display: block !important; }
 }
 
 /* EDIT MODAL */
@@ -896,6 +947,7 @@ function renderPedidos() {
 /* ── RENDER RUTA ── */
 function renderRuta() {
   const el=document.getElementById('rutaInner');
+  el.setAttribute('data-fecha', new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}));
   renderPedidos();
   if(!pedidos.length){
     el.innerHTML='<div class="empty-all">No hay pedidos cargados.<br>Cargalos en la solapa Pedidos.</div>'; return;
@@ -922,6 +974,8 @@ function renderRuta() {
             <div class="stop-addr">${[p.direccion,p.localidad].filter(Boolean).join(' — ')}</div>
             ${fmtRango(p.horaDesde,p.horaHasta)?`<div style="margin-top:3px;font-size:12px;font-family:'DM Mono',monospace;color:var(--accent)">⏱ ${fmtRango(p.horaDesde,p.horaHasta)}</div>`:''}
             ${p.notas?`<div class="stop-notes">${p.notas}</div>`:''}
+            <div class="print-tel" style="display:none;margin-top:4px;font-size:12px;color:#444">📞 ${p.telefono||'Sin teléfono'}</div>
+            ${fmtRango(p.horaDesde,p.horaHasta)?`<div class="print-horario" style="display:none;font-size:12px;color:#444">⏱ ${fmtRango(p.horaDesde,p.horaHasta)}</div>`:''}
           </div>
           <div class="stop-right">
             <span class="qty-badge">${p.bultos} bulto${p.bultos!==1?'s':''}</span>
