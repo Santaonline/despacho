@@ -937,7 +937,17 @@ function renderRuta() {
       </div>`;
   }).join('');
 
+  const gmapsUrl = (() => {
+    const stops = ruta.filter(r => r.pedido.lat && r.pedido.lng);
+    if (!stops.length) return null;
+    const origin = `${DEPOT.lat},${DEPOT.lng}`;
+    const dest   = `${DEPOT.lat},${DEPOT.lng}`;
+    const wps    = stops.map(r => `${r.pedido.lat},${r.pedido.lng}`).join('|');
+    return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}&waypoints=${wps}&travelmode=driving`;
+  })();
+
   el.innerHTML=`
+    ${gmapsUrl ? `<a href="${gmapsUrl}" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:8px;background:#1D4ED8;color:#fff;padding:12px 16px;border-radius:var(--radius);text-decoration:none;font-weight:600;font-size:14px;margin-bottom:16px">🗺 Abrir ruta en Google Maps</a>` : ''}
     <div class="ruta-progress">
       <div class="prog-bar-wrap">
         <div class="prog-label">${nDone} de ${ruta.length} entregados · ${totalBultos} bultos · ${total.toFixed(1)} km totales</div>
