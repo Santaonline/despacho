@@ -947,7 +947,10 @@ function renderRuta() {
   })();
 
   el.innerHTML=`
-    ${gmapsUrl ? `<a href="${gmapsUrl}" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:8px;background:#1D4ED8;color:#fff;padding:12px 16px;border-radius:var(--radius);text-decoration:none;font-weight:600;font-size:14px;margin-bottom:16px">🗺 Abrir ruta en Google Maps</a>` : ''}
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      ${gmapsUrl ? `<a href="${gmapsUrl}" target="_blank" rel="noopener" style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;background:#1D4ED8;color:#fff;padding:12px 16px;border-radius:var(--radius);text-decoration:none;font-weight:600;font-size:14px">🗺 Google Maps</a>` : ''}
+      <button onclick="window.print()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--surface);border:1px solid var(--border);color:var(--ink);padding:12px 16px;border-radius:var(--radius);font:600 14px 'DM Sans',sans-serif;cursor:pointer">🖨 Imprimir ruta</button>
+    </div>
     <div class="ruta-progress">
       <div class="prog-bar-wrap">
         <div class="prog-label">${nDone} de ${ruta.length} entregados · ${totalBultos} bultos · ${total.toFixed(1)} km totales</div>
