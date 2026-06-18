@@ -891,7 +891,7 @@ function eliminarPedido(id) {
   pedidos=pedidos.filter(p=>p.id!==id);
   entregados=entregados.filter(x=>x!==id);
   save(); saveEntregados();
-  renderPedidos(); updateBadges();
+  renderPedidos(); renderRuta(); renderProgramada(); updateBadges();
 }
 
 function limpiarTodo() {
