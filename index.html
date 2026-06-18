@@ -1068,7 +1068,7 @@ function renderRuta() {
     </div>
     <div class="ruta-progress">
       <div class="prog-bar-wrap">
-        <div class="prog-label">${nDone} de ${ruta.length} entregados · ${totalBultos} bultos · ${total.toFixed(1)} km totales</div>
+        <div class="prog-label">${nDone} de ${nTotal} entregados · ${totalBultos} bultos · ${total.toFixed(1)} km totales</div>
         <div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div>
       </div>
       <div class="prog-pct">${pct}%</div>
@@ -1209,13 +1209,15 @@ function renderProgramada() {
 function updateBadges() {
   const n=pedidos.length;
   const nd=entregados.length;
+  const hoyStr=new Date().toISOString().slice(0,10);
+  const hoyTotal=pedidos.filter(p=>!p.fechaEntrega||p.fechaEntrega<=hoyStr).length;
+  const hoyDone=pedidos.filter(p=>(!p.fechaEntrega||p.fechaEntrega<=hoyStr)&&entregados.includes(p.id)).length;
   document.getElementById('badgePedidos').textContent=n;
   document.getElementById('badgePedidos').className='tab-badge'+(n?'':' empty');
-  document.getElementById('badgeRuta').textContent=nd?`${nd}/${n}`:n;
-  document.getElementById('badgeRuta').className='tab-badge'+(n?'':' empty');
+  document.getElementById('badgeRuta').textContent=hoyDone?`${hoyDone}/${hoyTotal}`:hoyTotal;
+  document.getElementById('badgeRuta').className='tab-badge'+(hoyTotal?'':' empty');
   document.getElementById('badgeEntregados').textContent=nd;
   document.getElementById('badgeEntregados').className='tab-badge'+(nd?'':' empty');
-  const hoyStr=new Date().toISOString().slice(0,10);
   const np=pedidos.filter(p=>!entregados.includes(p.id)&&p.fechaEntrega&&p.fechaEntrega>hoyStr).length;
   document.getElementById('badgeProgramada').textContent=np;
   document.getElementById('badgeProgramada').className='tab-badge'+(np?'':' empty');
