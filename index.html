@@ -534,9 +534,10 @@ body {
   </button>
 </div>
 
-<!-- PANEL: PEDIDOS (solo formulario) -->
+<!-- PANEL: PEDIDOS -->
 <div class="panel active" id="panelPedidos">
   <div class="inner">
+    <div id="chipsPedidos" class="chips" style="display:none"></div>
     <div class="form-card">
       <h2>Agregar pedido</h2>
       <div class="form-grid">
@@ -586,15 +587,14 @@ body {
       </div>
     </div>
     <div id="confirmAgregado" style="display:none;text-align:center;padding:16px;font-size:14px;color:var(--accent);font-weight:500"></div>
+    <div style="margin-top:20px" id="zonasPedidos"></div>
   </div>
 </div>
 
-<!-- PANEL: RUTA (pedidos por zona + ruta optimizada) -->
+<!-- PANEL: RUTA -->
 <div class="panel" id="panelRuta">
   <div class="inner">
-    <div id="chipsPedidos" class="chips" style="display:none"></div>
     <div id="rutaInner"></div>
-    <div style="margin-top:20px" id="zonasPedidos"></div>
   </div>
 </div>
 
@@ -739,6 +739,7 @@ function setTab(tab) {
   document.getElementById('panelPedidos').classList.toggle('active', tab==='pedidos');
   document.getElementById('panelRuta').classList.toggle('active', tab==='ruta');
   document.getElementById('panelEntregados').classList.toggle('active', tab==='entregados');
+  if(tab==='pedidos') renderPedidos();
   if(tab==='ruta') renderRuta();
   if(tab==='entregados') renderEntregados();
 }
@@ -863,6 +864,7 @@ function agregarPedido() {
   conf.style.display='block';
   clearTimeout(window._confTimer);
   window._confTimer=setTimeout(()=>conf.style.display='none',2500);
+  renderPedidos();
   updateBadges();
 }
 
@@ -877,7 +879,7 @@ function limpiarTodo() {
   if(!confirm('¿Borrar todos los pedidos del día?')) return;
   pedidos=[]; entregados=[];
   save(); saveEntregados();
-  renderRuta(); updateBadges();
+  renderPedidos(); renderRuta(); updateBadges();
 }
 
 function toggleEntregado(id) {
@@ -962,7 +964,6 @@ function renderPedidos() {
 function renderRuta() {
   const el=document.getElementById('rutaInner');
   el.setAttribute('data-fecha', new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}));
-  renderPedidos();
   if(!pedidos.length){
     el.innerHTML='<div class="empty-all">No hay pedidos cargados.<br>Cargalos en la solapa Pedidos.</div>'; return;
   }
