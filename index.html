@@ -418,7 +418,7 @@ body {
   /* Ocultar todo lo que no es hoja de ruta */
   .app-header, .tabs, .form-card, .chips,
   .stop-actions, .del-btn,
-  #panelPedidos, #zonasPedidos, #chipsPedidos,
+  #panelPedidos, #zonasPedidos, #chipsPedidos, #panelEntregados,
   .ruta-progress, .depot-row, .connector,
   a[href*="google.com"], button { display: none !important; }
 
@@ -529,6 +529,9 @@ body {
   <button class="tab-btn" id="tabBtnRuta" onclick="setTab('ruta')">
     🗺 Hoja de ruta <span class="tab-badge empty" id="badgeRuta">0</span>
   </button>
+  <button class="tab-btn" id="tabBtnEntregados" onclick="setTab('entregados')">
+    ✅ Entregados <span class="tab-badge empty" id="badgeEntregados">0</span>
+  </button>
 </div>
 
 <!-- PANEL: PEDIDOS (solo formulario) -->
@@ -592,6 +595,13 @@ body {
     <div id="chipsPedidos" class="chips" style="display:none"></div>
     <div id="rutaInner"></div>
     <div style="margin-top:20px" id="zonasPedidos"></div>
+  </div>
+</div>
+
+<!-- PANEL: ENTREGADOS -->
+<div class="panel" id="panelEntregados">
+  <div class="inner" id="entregadosInner">
+    <div class="empty-all">Ningún pedido entregado aún.</div>
   </div>
 </div>
 
@@ -725,9 +735,12 @@ function setTab(tab) {
   tabActual = tab;
   document.getElementById('tabBtnPedidos').classList.toggle('active', tab==='pedidos');
   document.getElementById('tabBtnRuta').classList.toggle('active', tab==='ruta');
+  document.getElementById('tabBtnEntregados').classList.toggle('active', tab==='entregados');
   document.getElementById('panelPedidos').classList.toggle('active', tab==='pedidos');
   document.getElementById('panelRuta').classList.toggle('active', tab==='ruta');
+  document.getElementById('panelEntregados').classList.toggle('active', tab==='entregados');
   if(tab==='ruta') renderRuta();
+  if(tab==='entregados') renderEntregados();
 }
 
 /* ── GEO / AUTOCOMPLETE ── */
@@ -872,6 +885,7 @@ function toggleEntregado(id) {
   else entregados.push(id);
   saveEntregados();
   renderRuta();
+  renderEntregados();
   updateBadges();
 }
 
@@ -953,21 +967,34 @@ function renderRuta() {
     el.innerHTML='<div class="empty-all">No hay pedidos cargados.<br>Cargalos en la solapa Pedidos.</div>'; return;
   }
 
-  const {ruta,total,dv}=optimizarRuta(pedidos);
-  const totalBultos=pedidos.reduce((s,p)=>s+p.bultos,0);
+  const pendientes=pedidos.filter(p=>!entregados.includes(p.id));
+  const {ruta,total,dv}=optimizarRuta(pendientes);
+  const totalBultos=pendientes.reduce((s,p)=>s+p.bultos,0);
   const nDone=entregados.length;
-  const pct=ruta.length?Math.round(nDone/ruta.length*100):0;
+  const nTotal=pedidos.length;
+  const pct=nTotal?Math.round(nDone/nTotal*100):0;
+
+  if(!pendientes.length){
+    el.innerHTML=`
+      <div class="ruta-progress">
+        <div class="prog-bar-wrap">
+          <div class="prog-label">${nDone} de ${nTotal} entregados — ¡Ruta completada!</div>
+          <div class="prog-bar"><div class="prog-fill" style="width:100%"></div></div>
+        </div>
+        <div class="prog-pct">100%</div>
+      </div>
+      <div class="empty-all" style="padding:32px 20px">🎉 Todos los pedidos fueron entregados.<br>Revisalos en la solapa Entregados.</div>`;
+    return;
+  }
 
   const stops=ruta.map((r,idx)=>{
     const p=r.pedido;
-    const done=entregados.includes(p.id);
     const dist=r.dist!==null?r.dist.toFixed(1)+' km':'—';
-    const wsp=wspUrl(p.telefono,p.nombre);
     return `
       <div class="connector"></div>
-      <div class="stop-card ${done?'done':''}">
+      <div class="stop-card">
         <div class="stop-top">
-          <div class="stop-num ${done?'done-num':''}">${done?'✓':idx+1}</div>
+          <div class="stop-num">${idx+1}</div>
           <div class="stop-info">
             ${p.nroOrden?`<div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--info);margin-bottom:2px">${p.nroOrden}</div>`:''}
             <div class="stop-name">${p.nombre}</div>
@@ -984,7 +1011,7 @@ function renderRuta() {
         </div>
         <div class="stop-actions">
           ${p.telefono?`<button class="btn-wsp" style="background:#128C7E" onclick="wspUbicacion('${p.telefono}','${p.nombre.replace(/'/g,"\\'")}')">📍 Enviar ubicación</button>`:''}
-          <button class="btn-done ${done?'done':''}" onclick="toggleEntregado(${p.id})">${done?'✓ Entregado':'Marcar entregado'}</button>
+          <button class="btn-done" onclick="toggleEntregado(${p.id})">Marcar entregado</button>
           <button class="btn btn-ghost btn-sm" onclick="abrirEditarPedido(${p.id})">✏ Editar</button>
           <button class="btn btn-sm" style="background:var(--danger-light);color:var(--danger)" onclick="eliminarPedido(${p.id})">× Eliminar</button>
         </div>
@@ -1024,6 +1051,53 @@ function renderRuta() {
     </div>`;
 }
 
+function limpiarEntregados() {
+  if(!confirm('¿Quitar todos los entregados de la lista?')) return;
+  entregados=[];
+  saveEntregados();
+  renderEntregados();
+  renderRuta();
+  updateBadges();
+}
+
+/* ── RENDER ENTREGADOS ── */
+function renderEntregados() {
+  const el=document.getElementById('entregadosInner');
+  const lista=pedidos.filter(p=>entregados.includes(p.id));
+  if(!lista.length){
+    el.innerHTML='<div class="empty-all">Ningún pedido entregado aún.</div>'; return;
+  }
+  const totalBultos=lista.reduce((s,p)=>s+p.bultos,0);
+  el.innerHTML=`
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+      <div class="chips" style="margin:0;flex:1">
+        <div class="chip"><strong>${lista.length}</strong> entregado${lista.length!==1?'s':''}</div>
+        <div class="chip"><strong>${totalBultos}</strong> bulto${totalBultos!==1?'s':''}</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="limpiarEntregados()">Limpiar entregados</button>
+    </div>
+    ${lista.map(p=>`
+      <div class="stop-card" style="margin-bottom:8px;border-color:var(--accent-light)">
+        <div class="stop-top">
+          <div class="stop-num done-num">✓</div>
+          <div class="stop-info">
+            ${p.nroOrden?`<div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--info);margin-bottom:2px">${p.nroOrden}</div>`:''}
+            <div class="stop-name">${p.nombre}</div>
+            <div class="stop-addr">${[p.direccion,p.localidad].filter(Boolean).join(' — ')}</div>
+            ${fmtRango(p.horaDesde,p.horaHasta)?`<div style="margin-top:3px;font-size:12px;font-family:'DM Mono',monospace;color:var(--accent)">⏱ ${fmtRango(p.horaDesde,p.horaHasta)}</div>`:''}
+            ${p.notas?`<div class="stop-notes">${p.notas}</div>`:''}
+          </div>
+          <div class="stop-right">
+            <span class="qty-badge">${p.bultos} bulto${p.bultos!==1?'s':''}</span>
+          </div>
+        </div>
+        <div class="stop-actions">
+          <button class="btn-done done" onclick="toggleEntregado(${p.id})">✓ Entregado</button>
+        </div>
+      </div>
+    `).join('')}`;
+}
+
 /* ── BADGES ── */
 function updateBadges() {
   const n=pedidos.length;
@@ -1032,6 +1106,8 @@ function updateBadges() {
   document.getElementById('badgePedidos').className='tab-badge'+(n?'':' empty');
   document.getElementById('badgeRuta').textContent=nd?`${nd}/${n}`:n;
   document.getElementById('badgeRuta').className='tab-badge'+(n?'':' empty');
+  document.getElementById('badgeEntregados').textContent=nd;
+  document.getElementById('badgeEntregados').className='tab-badge'+(nd?'':' empty');
 }
 
 /* ── EDITAR PEDIDO ── */
