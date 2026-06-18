@@ -1085,12 +1085,11 @@ function renderRuta() {
 }
 
 function limpiarEntregados() {
-  if(!confirm('¿Quitar todos los entregados de la lista?')) return;
+  if(!confirm('¿Eliminar todos los pedidos entregados?')) return;
+  pedidos=pedidos.filter(p=>!entregados.includes(p.id));
   entregados=[];
-  saveEntregados();
-  renderEntregados();
-  renderRuta();
-  renderProgramada();
+  save(); saveEntregados();
+  renderPedidos(); renderRuta(); renderEntregados(); renderProgramada();
   updateBadges();
 }
 
