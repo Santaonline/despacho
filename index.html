@@ -996,8 +996,9 @@ function renderRuta() {
   const pendientes=pedidos.filter(p=>!entregados.includes(p.id)&&(!p.fechaEntrega||p.fechaEntrega<=hoyStr));
   const {ruta,total,dv}=optimizarRuta(pendientes);
   const totalBultos=pendientes.reduce((s,p)=>s+p.bultos,0);
-  const nDone=entregados.length;
-  const nTotal=pedidos.length;
+  const pedidosHoy=pedidos.filter(p=>!p.fechaEntrega||p.fechaEntrega<=hoyStr);
+  const nTotal=pedidosHoy.length;
+  const nDone=pedidosHoy.filter(p=>entregados.includes(p.id)).length;
   const pct=nTotal?Math.round(nDone/nTotal*100):0;
 
   if(!pendientes.length&&pedidos.length){
