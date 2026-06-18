@@ -886,6 +886,7 @@ function toggleEntregado(id) {
   if(entregados.includes(id)) entregados=entregados.filter(x=>x!==id);
   else entregados.push(id);
   saveEntregados();
+  renderPedidos();
   renderRuta();
   renderEntregados();
   updateBadges();
@@ -897,8 +898,10 @@ function renderPedidos() {
   const chips=document.getElementById('chipsPedidos');
   const btnL=document.getElementById('btnLimpiar');
 
-  if(!pedidos.length){
-    container.innerHTML='<div class="empty-all">Todavía no hay pedidos. Agregá el primero arriba.</div>';
+  const pendientes=pedidos.filter(p=>!entregados.includes(p.id));
+
+  if(!pendientes.length){
+    container.innerHTML=pedidos.length?'<div class="empty-all">Todos los pedidos fueron entregados.</div>':'<div class="empty-all">Todavía no hay pedidos. Agregá el primero arriba.</div>';
     chips.style.display='none'; btnL.style.display='none'; return;
   }
 
@@ -906,7 +909,7 @@ function renderPedidos() {
   const grouped={};
   for(const z of ZONES) grouped[z.name]=[];
   grouped['Sin zona']=[];
-  for(const p of pedidos){
+  for(const p of pendientes){
     const key=ZONES.find(z=>z.name===p.zona)?p.zona:'Sin zona';
     grouped[key].push(p);
   }
@@ -919,8 +922,8 @@ function renderPedidos() {
   }
 
   // Chips
-  const totalBultos=pedidos.reduce((s,p)=>s+p.bultos,0);
-  chips.innerHTML=`<div class="chip"><strong>${pedidos.length}</strong> pedido${pedidos.length!==1?'s':''}</div><div class="chip"><strong>${totalBultos}</strong> bulto${totalBultos!==1?'s':''}</div>`
+  const totalBultos=pendientes.reduce((s,p)=>s+p.bultos,0);
+  chips.innerHTML=`<div class="chip"><strong>${pendientes.length}</strong> pedido${pendientes.length!==1?'s':''}</div><div class="chip"><strong>${totalBultos}</strong> bulto${totalBultos!==1?'s':''}</div>`
     +ZONES.map(z=>grouped[z.name].length?`<div class="chip">${z.name}: <strong>${grouped[z.name].length}</strong></div>`:'').join('')
     +(grouped['Sin zona'].length?`<div class="chip" style="border-color:#FECACA;color:#991B1B">Sin zona: <strong>${grouped['Sin zona'].length}</strong></div>`:'');
   chips.style.display='flex';
