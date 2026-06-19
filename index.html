@@ -634,7 +634,7 @@ const ZONES = [
 /* ── ESTADO ── */
 let pedidos    = [];
 let nextId     = 1;
-let entregados = JSON.parse(sessionStorage.getItem('despacho_entregados') || '[]');
+let entregados = [];
 let tabActual = 'pedidos';
 let geoTimer = null;
 let currentGeo = null;
@@ -643,11 +643,11 @@ let acIdx = -1;
 /* ── PERSIST ── */
 function save() {
   _syncChip('syncing');
-  _db.collection('despacho').doc('estado').set({ pedidos, nextId })
+  _db.collection('despacho').doc('estado').set({ pedidos, nextId, entregados })
     .then(() => _syncChip('ok')).catch(() => _syncChip('error'));
 }
 function saveEntregados() {
-  sessionStorage.setItem('despacho_entregados', JSON.stringify(entregados));
+  save();
 }
 
 /* ── UTIL ── */
@@ -1289,8 +1289,9 @@ async function _fbLoad() {
     const doc = await _db.collection('despacho').doc('estado').get();
     if (doc.exists) {
       const data = doc.data();
-      pedidos = data.pedidos || [];
-      nextId  = data.nextId  || 1;
+      pedidos    = data.pedidos    || [];
+      nextId     = data.nextId     || 1;
+      entregados = data.entregados || [];
     }
     _syncChip('ok');
   } catch(e) {
