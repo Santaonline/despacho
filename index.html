@@ -896,9 +896,11 @@ function eliminarPedido(id) {
 
 function limpiarTodo() {
   if(!confirm('¿Borrar todos los pedidos del día?')) return;
-  pedidos=[]; entregados=[];
+  const hoyStr=new Date().toISOString().slice(0,10);
+  pedidos=pedidos.filter(p=>p.fechaEntrega&&p.fechaEntrega>hoyStr);
+  entregados=entregados.filter(id=>pedidos.some(p=>p.id===id));
   save(); saveEntregados();
-  renderPedidos(); renderRuta(); updateBadges();
+  renderPedidos(); renderRuta(); renderProgramada(); updateBadges();
 }
 
 function toggleEntregado(id) {
